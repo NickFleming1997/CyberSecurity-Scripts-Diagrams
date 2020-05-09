@@ -1,0 +1,65 @@
+###Ansible playbook for elk install 
+
+---
+- name: Configure Elk VM with Docker
+  hosts: elkservers
+  remote_user: rtadminVM1
+  become: true
+  tasks:
+  - name: Install docker.io
+    apt:
+      force_apt_get: yes
+      name: docker.io
+      state: present
+
+  - name: Install python-pip
+    apt:
+      force_apt_get: yes
+      name: python-pip
+      state: present
+
+  - name: Install Docker module
+    pip:
+      name: docker
+      state: present
+
+  - name: Increase virtual memory
+    command: sysctl -w vm.max_map_count=262144
+
+  - name: download and launch a docker elk container
+    docker_container:
+      name: elk
+      image: sebp/elk
+      state: started
+      published_ports:
+        - 5601:5601
+        - 9200:9200
+        - 5044:5044
+   
+###Ansible playbook for filebeat install and launch 
+
+---
+- name: installing and launching filebeat
+  hosts: webservers
+  become: yes
+  tasks:
+
+  - name: download filebeat deb
+    command: curl -L -O https://artifacts.elastic.co/downloads/beats/filebeat/filebeat-7.4.0-amd64.deb
+ 
+  - name: install filebeat deb
+    command: dpkg -i filebeat-7.4.0-amd64.deb
+
+  - name: drop in filebeat.yml 
+    copy:
+      src: ../files/config-filebeat.yml
+      dest: /etc/filebeat/filebeat.yml
+
+  - name: enable and configure system module
+    command: sudo filebeat modules enable system
+
+  - name: setup filebeat
+    command: sudo filebeat setup
+
+  - name: start filebeat service
+    command: sudo service filebeat start
